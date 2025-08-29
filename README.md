@@ -1,6 +1,6 @@
-# JiraBugReporter
+# Jira Bug Reporter
 
-Tek tıkla bulunduğunuz sayfadan ekran görüntüsü, console & network logları, cookies, local/session storage ve sekme ekran kaydı (WebM) toplayıp Jira’da bilet açar. Zengin metin açıklamalar ADF (Atlassian Document Format) ile oluşturulur.
+Tek tıkla bulunduğunuz sayfadan ekran görüntüsü, console & network logları, cookies ve local/session storage toplayıp Jira’da bilet açar. Zengin metin açıklamalar ADF (Atlassian Document Format) ile oluşturulur.
 
 ## Özellikler
 **Jira entegrasyonu:** Proje anahtarı ve issue tipi ile anında bilet açar.
