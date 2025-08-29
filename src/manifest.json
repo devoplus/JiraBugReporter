@@ -3,7 +3,16 @@
   "name": "Jira Bug Reporter",
   "version": "1.1.0",
   "description": "Aktif sayfadan hata ve ağ bilgilerini toplayıp Jira'da bilet açar.",
-  "action": { "default_popup": "popup.html", "default_title": "Jira'ya gönder" },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Jira'ya gönder"
+  },
   "options_page": "options.html",
   "permissions": [
     "activeTab",
@@ -17,11 +26,19 @@
     "<all_urls>",
     "https://*.atlassian.net/*"
   ],
-  "background": { "service_worker": "background.js" },
-  "content_scripts": [{
-    "matches": ["<all_urls>"],
-    "js": ["content.js"],
-    "run_at": "document_start",
-	"all_frames": true
-  }]
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": true
+    }
+  ]
 }
