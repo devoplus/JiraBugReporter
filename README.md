@@ -4,9 +4,13 @@ Tek tıkla bulunduğunuz sayfadan ekran görüntüsü, console & network loglar�
 
 ## Özellikler
 **Jira entegrasyonu:** Proje anahtarı ve issue tipi ile anında bilet açar.
+
 **Kanıt toplama:** Screenshot, JS hataları, console.* mesajları, fetch/XHR özetleri.
+
 **Bağlam verileri (opsiyonel):** Cookies (mümkün olduğunca HttpOnly dahil), localStorage & sessionStorage özetleri.
+
 **ADF açıklama:** Jira Cloud ile uyumlu zengin açıklama gövdesi.
+
 **Yerel & şeffaf:** Yalnızca sizin aksiyonunuzla çalışır; üçüncü taraf sunucu yok.
 
 ## Kurulum
