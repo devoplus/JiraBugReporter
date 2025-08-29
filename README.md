@@ -64,6 +64,7 @@ Uzantı ikonuna sağ tıklayın ve ayarlar sayfasına gidin.
  - [ ] Proje/issue type seçince zorunlu alanları otomatik formda gösterme.
  - [ ] Etiket/assignee/priority seçimleri
  - [ ] Çoklu proje profilleri
+ - [ ] Çoklu dil desteği
  - [ ] DevTools paneli ile HAR çıkarmak
  - [ ] `chrome.debugger` ile header/status/redirect zincirini de elde etmek
  - [ ] Alan adı/desen bazlı include/exclude (örn. `cdn.*.com` hariç).
