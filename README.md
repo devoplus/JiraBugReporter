@@ -1,6 +1,6 @@
 # Jira Bug Reporter
 
-![Devoplus Open Source](https://img.shields.io/badge/Open_Source-DP?label=Devoplus&labelColor=%23B60017&color=%2319191a)
+![GitHub License](https://img.shields.io/github/license/devoplus/JiraBugReporter) ![Devoplus Open Source](https://img.shields.io/badge/Open_Source-DP?label=Devoplus&labelColor=%23B60017&color=%2319191a)
 
 Tek tıkla bulunduğunuz sayfadan ekran görüntüsü, console & network logları, cookies ve local/session storage toplayıp Jira’da bilet açar. Zengin metin açıklamalar ADF (Atlassian Document Format) ile oluşturulur.
 
