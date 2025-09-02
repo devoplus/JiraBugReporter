@@ -1,13 +1,49 @@
 <!doctype html>
 <html>
-<head><meta charset="utf-8"><title>Jira Ayarları</title></head>
+<head>
+  <meta charset="utf-8">
+  <title>Jira Bug Reporter Ayarları</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
 <body>
-  <label>Jira Base URL <input id="baseUrl" placeholder="https://company.atlassian.net"></label><br>
-  <label>Email <input id="email"></label><br>
-  <label>API Token <input id="token" type="password"></label><br>
-  <label>Project Key <input id="projectKey" placeholder="KEY"></label><br>
-  <label>Issue Type <input id="issueType" value="Bug"></label><br>
-  <button id="save">Kaydet</button>
+  <div class="options">
+    <div class="header">
+      <div class="logo" aria-hidden="true">
+        <img src="icons/icon32.png" alt="" width="32" height="32" />
+      </div>
+      <div>
+        <div class="title">Jira Bug Reporter Ayarları</div>
+        <div class="subtitle muted">
+          Uzantının çalışabilmesi için gerekli ayarları yapın.
+        </div>
+      </div>
+    </div>
+
+    <div class="group" role="group" aria-labelledby="ayarlar">
+      
+      <label>Jira Sunucu Adresi:</label>
+      <input id="baseUrl" placeholder="https://company.atlassian.net">
+
+      <label>E-Posta Adresi:</label>
+      <input id="email">
+
+      <label>API Belirteci:</label>
+      <input id="token" type="password">
+
+      <label>Proje Anahtarı:</label>
+      <input id="projectKey" placeholder="KEY">
+
+      <label>Issue Türü:</label>
+      <input id="issueType" value="Bug">
+    </div>
+
+    <div class="divider" aria-hidden="true"></div>
+
+    <div class="actions">
+      <button id="save" class="btn" type="button" title="Ayarları Kaydet">Kaydet</button>
+    </div>
+  </div>
+
   <script src="options.js"></script>
 </body>
 </html>

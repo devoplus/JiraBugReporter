@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Jira Bug Reporter",
-  "version": "1.1.0",
+  "version": "1.1.2",
   "description": "Aktif sayfadan hata ve ağ bilgilerini toplayıp Jira'da bilet açar.",
   "icons": {
     "16": "icons/icon16.png",
@@ -11,13 +11,12 @@
   },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Jira'ya gönder"
+    "default_title": "Jira Bug Reporter"
   },
   "options_page": "options.html",
   "permissions": [
     "activeTab",
     "tabs",
-    "scripting",
     "storage",
     "cookies",
     "tabCapture"

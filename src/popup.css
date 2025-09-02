@@ -26,10 +26,13 @@ body{
   border-radius: var(--radius);
   box-shadow: 0 10px 30px rgba(0,0,0,.18);
 }
+.options {
+  padding: 1rem;
+}
 .header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
 .logo{
   width:28px;height:28px;border-radius:8px;background:var(--surface);
-  display:grid;place-items:center;border:1px solid var(--border)
+  display:grid;place-items:center;
 }
 .title{font-weight:700}
 .subtitle{color:var(--muted)}
