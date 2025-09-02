@@ -73,3 +73,7 @@ Uzantı ikonuna sağ tıklayın ve ayarlar sayfasına gidin.
  - [ ] DevTools paneli ile HAR çıkarmak
  - [ ] `chrome.debugger` ile header/status/redirect zincirini de elde etmek
  - [ ] Alan adı/desen bazlı include/exclude (örn. `cdn.*.com` hariç)
+
+## Copyright
+
+Trademarks: Atlassian, Jira and their respective logos are trademarks or registered trademarks of Atlassian Pty Ltd in the U.S. and other countries. All other product names, logos, and brands are property of their respective owners.
