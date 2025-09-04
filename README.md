@@ -22,7 +22,7 @@ Tek tıkla bulunduğunuz sayfadan ekran görüntüsü, console & network loglar�
  2.  Chrome → `chrome://extensions` → **Developer mode**’u açın.
  3.  **Load unpacked** → proje klasörünü seçin.
 
-### Web Mağazası üzerinden yükleme (yakında)
+### Web Mağazası üzerinden yükleme
 https://chromewebstore.google.com/detail/jira-bug-reporter/pjgaemnffpinbokdoekgbheakgenmbma adresi üzerinden uzantıyı yükleyin.
 
 ### Jira yapılandırması
