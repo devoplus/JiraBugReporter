@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <title>Jira Bug Reporter Ayarları</title>
   <link rel="stylesheet" href="popup.css" />
+  <script src="i18n.js"></script>
 </head>
 <body>
   <div class="options">
@@ -12,8 +13,8 @@
         <img src="icons/icon32.png" alt="" width="32" height="32" />
       </div>
       <div>
-        <div class="title">Jira Bug Reporter Ayarları</div>
-        <div class="subtitle muted">
+        <div class="title" data-i18n="optionsTitle">Jira Bug Reporter Ayarları</div>
+        <div class="subtitle muted" data-i18n="optionsSubtitle">
           Uzantının çalışabilmesi için gerekli ayarları yapın.
         </div>
       </div>
@@ -21,27 +22,36 @@
 
     <div class="group" role="group" aria-labelledby="ayarlar">
       
-      <label>Jira Sunucu Adresi:</label>
-      <input id="baseUrl" placeholder="https://company.atlassian.net">
+      <label data-i18n="labelJiraBaseUrl">Jira Sunucu Adresi:</label>
+      <input id="baseUrl" data-i18n-placeholder="placeholderJiraBaseUrl" placeholder="https://company.atlassian.net">
 
-      <label>E-Posta Adresi:</label>
+      <label data-i18n="labelEmail">E-Posta Adresi:</label>
       <input id="email">
 
-      <label>API Belirteci:</label>
-      <small>API Belirtecinizi <a href="https://id.atlassian.com/manage-profile/security/api-tokens" target="_blank">https://id.atlassian.com/manage-profile/security/api-tokens</a> adresinden alabilirsiniz.</small>
+      <label data-i18n="labelApiToken">API Belirteci:</label>
+      <small>
+        <span id="apiTokenHintText"></span>
+        <a href="https://id.atlassian.com/manage-profile/security/api-tokens" target="_blank" id="apiTokenUrl">https://id.atlassian.com/manage-profile/security/api-tokens</a>
+      </small>
       <input id="token" type="password">
 
-      <label>Proje Anahtarı:</label>
-      <input id="projectKey" placeholder="KEY">
+      <label data-i18n="labelProjectKey">Proje Anahtarı:</label>
+      <input id="projectKey" data-i18n-placeholder="placeholderProjectKey" placeholder="KEY">
 
-      <label>Issue Türü:</label>
-      <input id="issueType" value="Bug">
+      <label data-i18n="labelIssueType">Issue Türü:</label>
+      <input id="issueType" data-i18n-value="defaultIssueType" value="Bug">
+
+      <label data-i18n="labelLanguage">Dil:</label>
+      <select id="languageSelect" style="padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px;">
+        <option value="tr" data-i18n="languageTurkish">Türkçe</option>
+        <option value="en" data-i18n="languageEnglish">English</option>
+      </select>
     </div>
 
     <div class="divider" aria-hidden="true"></div>
 
     <div class="actions">
-      <button id="save" class="btn" type="button" title="Ayarları Kaydet">Kaydet</button>
+      <button id="save" class="btn" type="button" data-i18n="btnSave" data-i18n-title="btnSaveTitle" title="Ayarları Kaydet">Kaydet</button>
     </div>
   </div>
 

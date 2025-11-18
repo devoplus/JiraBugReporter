@@ -1,0 +1,172 @@
+{
+  "extName": {
+    "message": "Jira Bug Reporter"
+  },
+  "extDescription": {
+    "message": "Aktif sayfadan hata ve ağ bilgilerini toplayıp Jira'da bilet açar."
+  },
+  "popupTitle": {
+    "message": "Jira Bug Reporter"
+  },
+  "popupSubtitle": {
+    "message": "Tek tıkla bu sayfanın ekran görüntüsü ve loglarını toplayıp Jira'da bilet açar."
+  },
+  "labelCookies": {
+    "message": "Çerezler"
+  },
+  "hintCookies": {
+    "message": "Cookies eklensin"
+  },
+  "labelStorage": {
+    "message": "Depolama Özeti"
+  },
+  "hintStorage": {
+    "message": "localStorage & sessionStorage özetleri eklensin"
+  },
+  "btnCreateIssue": {
+    "message": "Jira'da bilet aç"
+  },
+  "btnCreateIssueTitle": {
+    "message": "Jira'da yeni bilet aç"
+  },
+  "statusCollecting": {
+    "message": "Bilgiler toplanıyor..."
+  },
+  "statusCreated": {
+    "message": "Oluşturuldu:"
+  },
+  "statusError": {
+    "message": "Hata:"
+  },
+  "statusUnknown": {
+    "message": "Bilinmiyor"
+  },
+  "optionsTitle": {
+    "message": "Jira Bug Reporter Ayarları"
+  },
+  "optionsSubtitle": {
+    "message": "Uzantının çalışabilmesi için gerekli ayarları yapın."
+  },
+  "labelJiraBaseUrl": {
+    "message": "Jira Sunucu Adresi:"
+  },
+  "placeholderJiraBaseUrl": {
+    "message": "https://company.atlassian.net"
+  },
+  "labelEmail": {
+    "message": "E-Posta Adresi:"
+  },
+  "labelApiToken": {
+    "message": "API Belirteci:"
+  },
+  "apiTokenHint": {
+    "message": "API Belirtecinizi $URL$ adresinden alabilirsiniz.",
+    "placeholders": {
+      "url": {
+        "content": "$1"
+      }
+    }
+  },
+  "labelProjectKey": {
+    "message": "Proje Anahtarı:"
+  },
+  "placeholderProjectKey": {
+    "message": "KEY"
+  },
+  "labelIssueType": {
+    "message": "Issue Türü:"
+  },
+  "defaultIssueType": {
+    "message": "Bug"
+  },
+  "btnSave": {
+    "message": "Kaydet"
+  },
+  "btnSaveTitle": {
+    "message": "Ayarları Kaydet"
+  },
+  "alertSaved": {
+    "message": "Kaydedildi"
+  },
+  "errorMissingSettings": {
+    "message": "Ayarlar eksik. Lütfen ayarlar sayfası üzerinden Jira bilgilerinizi doldurun."
+  },
+  "errorAlreadyRecording": {
+    "message": "Zaten kayıt var."
+  },
+  "errorCaptureTabFailed": {
+    "message": "Sekme yakalanamadı."
+  },
+  "errorIssueCreateFailed": {
+    "message": "Issue create failed:"
+  },
+  "errorAttachmentFailed": {
+    "message": "Attachment failed:"
+  },
+  "adfHeadingAutoReport": {
+    "message": "Otomatik Rapor"
+  },
+  "adfHeadingSummaryJson": {
+    "message": "Özet JSON"
+  },
+  "adfSummaryUrl": {
+    "message": "URL:"
+  },
+  "adfSummaryTime": {
+    "message": "Zaman:"
+  },
+  "adfSummaryUa": {
+    "message": "UA:"
+  },
+  "adfSummaryViewport": {
+    "message": "Viewport:"
+  },
+  "adfSummaryErrorCount": {
+    "message": "Hata sayısı:"
+  },
+  "adfSummaryConsoleCount": {
+    "message": "Console girdisi:"
+  },
+  "adfSummaryNetworkCount": {
+    "message": "Network girdisi:"
+  },
+  "adfSummaryResources": {
+    "message": "resources:"
+  },
+  "adfSummaryCookies": {
+    "message": "Cookies:"
+  },
+  "adfSummaryStorage": {
+    "message": "Storage:"
+  },
+  "adfSummaryRecording": {
+    "message": "Ekran kaydı:"
+  },
+  "adfIncluded": {
+    "message": "eklendi"
+  },
+  "adfNotIncluded": {
+    "message": "yok"
+  },
+  "adfFooterNote": {
+    "message": "Tam ayrıntılar için eklerdeki 'page-report.json' ve 'screenshot.png' dosyalarına bakınız."
+  },
+  "issueSummaryPrefix": {
+    "message": "[Bug]"
+  },
+  "labelLanguage": {
+    "message": "Dil:"
+  },
+  "languageTurkish": {
+    "message": "Türkçe"
+  },
+  "languageEnglish": {
+    "message": "English"
+  },
+  "footerDisclaimer": {
+    "message": "Jira Bug Reporter, Atlassian'ın bir ürünü olan Jira ile entegrasyon sağlayan açık kaynak kodlu üçüncü taraf bir araçtır. Atlassian ile bağlantılı, ortak veya onaylı değildir. \"Atlassian\" ve \"Jira\", Atlassian'ın tescilli ticari markalarıdır. Bu adların kullanımı, herhangi bir destek veya sponsorluk anlamına gelmez."
+  },
+  "footerContribute": {
+    "message": "üzerinden projeye siz de katkıda bulunabilirsiniz."
+  }
+}

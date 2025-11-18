@@ -1,9 +1,14 @@
 let rec = { mediaRecorder: null, chunks: [], stream: null };
 
+// Helper to get i18n message
+function msg(key, substitutions) {
+  return chrome.i18n.getMessage(key, substitutions) || key;
+}
+
 async function getSettings() {
   const s = await chrome.storage.sync.get(["baseUrl","email","token","projectKey","issueType"]);
   if (!s.baseUrl || !s.email || !s.token || !s.projectKey || !s.issueType) {
-    throw new Error("Ayarlar eksik. Lütfen ayarlar sayfası üzerinden Jira bilgilerinizi doldurun.");
+    throw new Error(msg("errorMissingSettings"));
   }
   const auth = "Basic " + btoa(`${s.email}:${s.token}`);
   return { ...s, auth };
@@ -16,13 +21,13 @@ async function capturePng(tabId) {
 }
 
 async function recStart(tabId) {
-  if (rec.mediaRecorder) throw new Error("Zaten kayıt var.");
+  if (rec.mediaRecorder) throw new Error(msg("errorAlreadyRecording"));
   rec.stream = await chrome.tabCapture.capture({
     audio: false,
     video: true,
     videoConstraints: { mandatory: { maxWidth: 1280, maxHeight: 720, maxFrameRate: 10 } }
   });
-  if (!rec.stream) throw new Error("Sekme yakalanamadı.");
+  if (!rec.stream) throw new Error(msg("errorCaptureTabFailed"));
   rec.chunks = [];
   rec.mediaRecorder = new MediaRecorder(rec.stream, { mimeType: "video/webm;codecs=vp9" });
   rec.mediaRecorder.ondataavailable = (e) => { if (e.data && e.data.size) rec.chunks.push(e.data); };
@@ -74,16 +79,16 @@ async function createIssue(settings, payload) {
   const host = new URL(url).hostname;
 
   const summaryItems = [
-    `URL: ${url}`,
-    `Zaman: ${payload.meta.time}`,
-    `UA: ${payload.meta.userAgent}`,
-    `Viewport: ${payload.meta.viewport.w}x${payload.meta.viewport.h}`,
-    `Hata sayısı: ${payload.logs.errors.length}`,
-    `Console girdisi: ${payload.logs.console.length}`,
-    `Network girdisi: ${payload.logs.network.length} (resources: ${payload.resources.length})`,
-    `Cookies: ${payload.cookies ? "eklendi" : "yok"}`,
-    `Storage: ${payload.storage ? "eklendi" : "yok"}`,
-    `Ekran kaydı: ${payload._hasRecording ? "eklendi" : "yok"}`
+    `${msg("adfSummaryUrl")} ${url}`,
+    `${msg("adfSummaryTime")} ${payload.meta.time}`,
+    `${msg("adfSummaryUa")} ${payload.meta.userAgent}`,
+    `${msg("adfSummaryViewport")} ${payload.meta.viewport.w}x${payload.meta.viewport.h}`,
+    `${msg("adfSummaryErrorCount")} ${payload.logs.errors.length}`,
+    `${msg("adfSummaryConsoleCount")} ${payload.logs.console.length}`,
+    `${msg("adfSummaryNetworkCount")} ${payload.logs.network.length} (${msg("adfSummaryResources")} ${payload.resources.length})`,
+    `${msg("adfSummaryCookies")} ${payload.cookies ? msg("adfIncluded") : msg("adfNotIncluded")}`,
+    `${msg("adfSummaryStorage")} ${payload.storage ? msg("adfIncluded") : msg("adfNotIncluded")}`,
+    `${msg("adfSummaryRecording")} ${payload._hasRecording ? msg("adfIncluded") : msg("adfNotIncluded")}`
   ];
 
   const previewJson = JSON.stringify(
@@ -99,11 +104,11 @@ async function createIssue(settings, payload) {
     version: 1,
     type: "doc",
     content: [
-      heading(3, "Otomatik Rapor"),
+      heading(3, msg("adfHeadingAutoReport")),
       bulletList(summaryItems),
-      heading(4, "Özet JSON"),
+      heading(4, msg("adfHeadingSummaryJson")),
       codeBlock("json", previewJson),
-      p("Tam ayrıntılar için eklerdeki 'page-report.json' ve 'screenshot.png' dosyalarına bakınız.")
+      p(msg("adfFooterNote"))
     ]
   };
 
@@ -111,7 +116,7 @@ async function createIssue(settings, payload) {
     fields: {
       project: { key: settings.projectKey },
       issuetype: { name: settings.issueType },
-      summary: `[Bug] ${payload.meta.title} @ ${host}`,
+      summary: `${msg("issueSummaryPrefix")} ${payload.meta.title} @ ${host}`,
       description: descriptionADF
     }
   };
@@ -126,7 +131,7 @@ async function createIssue(settings, payload) {
     body: JSON.stringify(body)
   });
 
-  if (!r.ok) throw new Error(`Issue create failed: ${r.status} ${await r.text()}`);
+  if (!r.ok) throw new Error(`${msg("errorIssueCreateFailed")} ${r.status} ${await r.text()}`);
   return await r.json();
 }
 
@@ -144,7 +149,7 @@ async function uploadAttachment(settings, issueIdOrKey, files) {
     },
     body: form
   });
-  if (!r.ok) throw new Error(`Attachment failed: ${r.status} ${await r.text()}`);
+  if (!r.ok) throw new Error(`${msg("errorAttachmentFailed")} ${r.status} ${await r.text()}`);
   return await r.json();
 }
 
