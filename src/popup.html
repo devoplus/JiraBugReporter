@@ -5,6 +5,7 @@
   <meta charset="utf-8">
   <title>Jira</title>
   <link rel="stylesheet" href="popup.css" />
+  <script src="i18n.js"></script>
 </head>
 
 <body>
@@ -18,9 +19,9 @@
         <img src="icons/icon32.png" alt="" width="32" height="32" />
       </div>
       <div>
-        <div class="title">Jira Bug Reporter</div>
-        <div class="subtitle muted">
-          Tek tıkla bu sayfanın ekran görüntüsü ve loglarını toplayıp Jira’da bilet açar.
+        <div class="title" data-i18n="popupTitle">Jira Bug Reporter</div>
+        <div class="subtitle muted" data-i18n="popupSubtitle">
+          Tek tıkla bu sayfanın ekran görüntüsü ve loglarını toplayıp Jira'da bilet açar.
         </div>
       </div>
     </div>
@@ -30,8 +31,8 @@
 
       <label class="toggle" for="includeCookies">
         <div>
-          <div class="label">Çerezler</div>
-          <div class="hint">Cookies eklensin</div>
+          <div class="label" data-i18n="labelCookies">Çerezler</div>
+          <div class="hint" data-i18n="hintCookies">Cookies eklensin</div>
         </div>
         <span class="switch">
           <input id="includeCookies" type="checkbox" checked />
@@ -41,8 +42,8 @@
 
       <label class="toggle" for="includeStorage">
         <div>
-          <div class="label">Depolama Özeti</div>
-          <div class="hint">localStorage &amp; sessionStorage özetleri eklensin</div>
+          <div class="label" data-i18n="labelStorage">Depolama Özeti</div>
+          <div class="hint" data-i18n="hintStorage">localStorage &amp; sessionStorage özetleri eklensin</div>
         </div>
         <span class="switch">
           <input id="includeStorage" type="checkbox" checked />
@@ -53,21 +54,35 @@
 
     <div class="divider" aria-hidden="true"></div>
 
+    <div class="group" style="margin-bottom: 1rem;">
+      <label for="languageSelect" style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem;">
+        <span data-i18n="labelLanguage">Dil:</span>
+        <select id="languageSelect" style="flex: 1; padding: 0.25rem; border: 1px solid #ccc; border-radius: 4px;">
+          <option value="tr" data-i18n="languageTurkish">Türkçe</option>
+          <option value="en" data-i18n="languageEnglish">English</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="divider" aria-hidden="true"></div>
+
     <div class="actions">
-      <button id="report" class="btn" type="button" title="Jira’da yeni bilet aç">
+      <button id="report" class="btn" type="button" data-i18n-title="btnCreateIssueTitle" title="Jira'da yeni bilet aç">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path d="M12 3l3.09 6.26L22 10.27l-5 4.91L18.18 22 12 18.77 5.82 22 
                    7 15.18l-5-4.91 6.91-1.01L12 3z" fill="currentColor" />
         </svg>
-        Jira’da bilet aç
+        <span data-i18n="btnCreateIssue">Jira'da bilet aç</span>
       </button>
     </div>
 
     <div id="status" class="status muted" aria-live="polite">
     </div>
 
-    <div id="footer">
-      Jira Bug Reporter, Atlassian’ın bir ürünü olan Jira ile entegrasyon sağlayan açık kaynak kodlu üçüncü taraf bir araçtır. Atlassian ile bağlantılı, ortak veya onaylı değildir. “Atlassian” ve “Jira”, Atlassian’ın tescilli ticari markalarıdır. Bu adların kullanımı, herhangi bir destek veya sponsorluk anlamına gelmez. <a href="https://github.com/devoplus/JiraBugReporter" target="_blank" rel="noopener">GitHub</a> üzerinden projeye siz de katkıda bulunabilirsiniz.
+    <div id="footer" style="font-size: 0.75rem; margin-top: 1rem; color: #666;">
+      <span data-i18n="footerDisclaimer">Jira Bug Reporter, Atlassian'ın bir ürünü olan Jira ile entegrasyon sağlayan açık kaynak kodlu üçüncü taraf bir araçtır. Atlassian ile bağlantılı, ortak veya onaylı değildir. "Atlassian" ve "Jira", Atlassian'ın tescilli ticari markalarıdır. Bu adların kullanımı, herhangi bir destek veya sponsorluk anlamına gelmez.</span>
+      <a href="https://github.com/devoplus/JiraBugReporter" target="_blank" rel="noopener">GitHub</a>
+      <span data-i18n="footerContribute">üzerinden projeye siz de katkıda bulunabilirsiniz.</span>
 
       <br />
 

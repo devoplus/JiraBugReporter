@@ -1,0 +1,172 @@
+{
+  "extName": {
+    "message": "Jira Bug Reporter"
+  },
+  "extDescription": {
+    "message": "Collects error and network information from the active page and creates a Jira ticket."
+  },
+  "popupTitle": {
+    "message": "Jira Bug Reporter"
+  },
+  "popupSubtitle": {
+    "message": "Collect screenshot and logs from this page and create a Jira ticket with one click."
+  },
+  "labelCookies": {
+    "message": "Cookies"
+  },
+  "hintCookies": {
+    "message": "Include cookies"
+  },
+  "labelStorage": {
+    "message": "Storage Summary"
+  },
+  "hintStorage": {
+    "message": "Include localStorage & sessionStorage summaries"
+  },
+  "btnCreateIssue": {
+    "message": "Create Jira Issue"
+  },
+  "btnCreateIssueTitle": {
+    "message": "Create new Jira issue"
+  },
+  "statusCollecting": {
+    "message": "Collecting information..."
+  },
+  "statusCreated": {
+    "message": "Created:"
+  },
+  "statusError": {
+    "message": "Error:"
+  },
+  "statusUnknown": {
+    "message": "Unknown"
+  },
+  "optionsTitle": {
+    "message": "Jira Bug Reporter Settings"
+  },
+  "optionsSubtitle": {
+    "message": "Configure the required settings for the extension to work."
+  },
+  "labelJiraBaseUrl": {
+    "message": "Jira Server URL:"
+  },
+  "placeholderJiraBaseUrl": {
+    "message": "https://company.atlassian.net"
+  },
+  "labelEmail": {
+    "message": "Email Address:"
+  },
+  "labelApiToken": {
+    "message": "API Token:"
+  },
+  "apiTokenHint": {
+    "message": "You can get your API token from $URL$.",
+    "placeholders": {
+      "url": {
+        "content": "$1"
+      }
+    }
+  },
+  "labelProjectKey": {
+    "message": "Project Key:"
+  },
+  "placeholderProjectKey": {
+    "message": "KEY"
+  },
+  "labelIssueType": {
+    "message": "Issue Type:"
+  },
+  "defaultIssueType": {
+    "message": "Bug"
+  },
+  "btnSave": {
+    "message": "Save"
+  },
+  "btnSaveTitle": {
+    "message": "Save Settings"
+  },
+  "alertSaved": {
+    "message": "Saved"
+  },
+  "errorMissingSettings": {
+    "message": "Settings are incomplete. Please fill in your Jira information through the settings page."
+  },
+  "errorAlreadyRecording": {
+    "message": "Already recording."
+  },
+  "errorCaptureTabFailed": {
+    "message": "Tab capture failed."
+  },
+  "errorIssueCreateFailed": {
+    "message": "Issue create failed:"
+  },
+  "errorAttachmentFailed": {
+    "message": "Attachment failed:"
+  },
+  "adfHeadingAutoReport": {
+    "message": "Automated Report"
+  },
+  "adfHeadingSummaryJson": {
+    "message": "Summary JSON"
+  },
+  "adfSummaryUrl": {
+    "message": "URL:"
+  },
+  "adfSummaryTime": {
+    "message": "Time:"
+  },
+  "adfSummaryUa": {
+    "message": "UA:"
+  },
+  "adfSummaryViewport": {
+    "message": "Viewport:"
+  },
+  "adfSummaryErrorCount": {
+    "message": "Error count:"
+  },
+  "adfSummaryConsoleCount": {
+    "message": "Console entries:"
+  },
+  "adfSummaryNetworkCount": {
+    "message": "Network entries:"
+  },
+  "adfSummaryResources": {
+    "message": "resources:"
+  },
+  "adfSummaryCookies": {
+    "message": "Cookies:"
+  },
+  "adfSummaryStorage": {
+    "message": "Storage:"
+  },
+  "adfSummaryRecording": {
+    "message": "Screen recording:"
+  },
+  "adfIncluded": {
+    "message": "included"
+  },
+  "adfNotIncluded": {
+    "message": "not included"
+  },
+  "adfFooterNote": {
+    "message": "See attached 'page-report.json' and 'screenshot.png' files for full details."
+  },
+  "issueSummaryPrefix": {
+    "message": "[Bug]"
+  },
+  "labelLanguage": {
+    "message": "Language:"
+  },
+  "languageTurkish": {
+    "message": "Türkçe"
+  },
+  "languageEnglish": {
+    "message": "English"
+  },
+  "footerDisclaimer": {
+    "message": "Jira Bug Reporter is a third-party open-source tool that integrates with Jira, a product of Atlassian. It is not affiliated with, endorsed by, or approved by Atlassian. \"Atlassian\" and \"Jira\" are registered trademarks of Atlassian. The use of these names does not imply any endorsement or sponsorship."
+  },
+  "footerContribute": {
+    "message": "and you can contribute to the project."
+  }
+}
