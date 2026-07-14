@@ -4,9 +4,10 @@
   <meta charset="utf-8">
   <title>Jira Bug Reporter Ayarları</title>
   <link rel="stylesheet" href="popup.css" />
+  <link rel="stylesheet" href="report.css" />
 </head>
-<body>
-  <div class="options">
+<body class="report-body">
+  <div class="report options-page">
     <div class="header">
       <div class="logo" aria-hidden="true">
         <img src="icons/icon32.png" alt="" width="32" height="32" />
@@ -14,37 +15,62 @@
       <div>
         <div class="title">Jira Bug Reporter Ayarları</div>
         <div class="subtitle muted">
-          Uzantının çalışabilmesi için gerekli ayarları yapın.
+          Birden fazla Jira profili tanımlayabilir, profilleri alan adlarıyla eşleştirebilirsiniz.
         </div>
       </div>
     </div>
 
-    <div class="group" role="group" aria-labelledby="ayarlar">
-      
-      <label>Jira Sunucu Adresi:</label>
-      <input id="baseUrl" placeholder="https://company.atlassian.net">
+    <div class="columns options-columns">
+      <div class="col">
+        <div class="group">
+          <div class="label">Profiller</div>
+          <ul id="profileList" class="profile-list"></ul>
+          <button id="newProfile" class="btn secondary" type="button">+ Yeni Profil</button>
+        </div>
+      </div>
 
-      <label>E-Posta Adresi:</label>
-      <input id="email">
+      <div class="col">
+        <div class="group" id="profileForm">
+          <label class="field-label" for="name">Profil Adı:</label>
+          <input id="name" placeholder="ör. Şirket Jira">
 
-      <label>API Belirteci:</label>
-      <small>API Belirtecinizi <a href="https://id.atlassian.com/manage-profile/security/api-tokens" target="_blank">https://id.atlassian.com/manage-profile/security/api-tokens</a> adresinden alabilirsiniz.</small>
-      <input id="token" type="password">
+          <label class="field-label" for="domains">Alan Adları (virgülle ayırın; bu alanlarla eşleşen sekmelerde otomatik seçilir):</label>
+          <input id="domains" placeholder="ör. app.example.com, *.example.org">
 
-      <label>Proje Anahtarı:</label>
-      <input id="projectKey" placeholder="KEY">
+          <label class="field-label" for="baseUrl">Jira Sunucu Adresi:</label>
+          <input id="baseUrl" placeholder="https://company.atlassian.net">
 
-      <label>Issue Türü:</label>
-      <input id="issueType" value="Bug">
-    </div>
+          <label class="field-label" for="email">E-Posta Adresi:</label>
+          <input id="email" type="email">
 
-    <div class="divider" aria-hidden="true"></div>
+          <label class="field-label" for="token">API Belirteci:</label>
+          <small>API Belirtecinizi <a href="https://id.atlassian.com/manage-profile/security/api-tokens" target="_blank" rel="noopener">https://id.atlassian.com/manage-profile/security/api-tokens</a> adresinden alabilirsiniz. Belirteç yalnızca bu cihazda saklanır (senkronize edilmez).</small>
+          <input id="token" type="password" autocomplete="off">
 
-    <div class="actions">
-      <button id="save" class="btn" type="button" title="Ayarları Kaydet">Kaydet</button>
+          <label class="field-label" for="projectKey">Proje Anahtarı:</label>
+          <input id="projectKey" placeholder="KEY" list="projectOptions">
+          <datalist id="projectOptions"></datalist>
+
+          <label class="field-label" for="issueType">Issue Türü:</label>
+          <input id="issueType" value="Bug" list="issueTypeOptions">
+          <datalist id="issueTypeOptions"></datalist>
+
+          <label class="check"><input id="isDefault" type="checkbox"> Varsayılan profil</label>
+
+          <div class="actions">
+            <button id="test" class="btn secondary" type="button" title="Kimlik bilgilerini doğrula, proje listesini getir">Bağlantıyı Test Et</button>
+            <button id="save" class="btn" type="button" title="Profili Kaydet">Kaydet</button>
+            <button id="delete" class="btn danger" type="button" title="Profili Sil">Sil</button>
+          </div>
+
+          <div id="status" class="status muted" aria-live="polite"></div>
+        </div>
+      </div>
     </div>
   </div>
 
+  <script src="shared.js"></script>
+  <script src="jira.js"></script>
   <script src="options.js"></script>
 </body>
 </html>

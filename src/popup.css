@@ -77,7 +77,36 @@ body{
 .btn:focus-visible{outline:var(--focus);outline-offset:2px}
 .btn[disabled]{opacity:.6;cursor:not-allowed}
 
+.btn.secondary{
+  background:var(--surface);color:var(--text);border-color:var(--border)
+}
+.btn.danger{
+  background:var(--error);border-color:var(--error)
+}
+
 .status{margin-top:10px;font-weight:600}
 .status.success{color:var(--success)}
 .status.error{color:var(--error)}
 .muted{color:var(--muted)}
+
+.hidden{display:none !important}
+.sr-only{
+  position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0
+}
+
+.banner{
+  border:1px solid var(--border);border-radius:10px;
+  padding:10px 12px;margin:10px 0;font-weight:500
+}
+.banner.warn{background:#fef9c3;border-color:#fde047}
+.banner.error{background:#fee2e2;border-color:#fca5a5;color:var(--error)}
+
+.recent .label{font-weight:600;margin-top:8px}
+.recent ul{margin:6px 0 0;padding-left:18px}
+.recent li{margin:2px 0}
+
+#footer{
+  margin-top:12px;color:var(--muted);font-size:11px;line-height:1.4
+}
+#footer img{margin-top:6px}

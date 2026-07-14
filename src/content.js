@@ -1,20 +1,68 @@
-(function inject() {
-  const s = document.createElement('script');
-  s.src = chrome.runtime.getURL('injected.js');
-  s.onload = () => s.remove();
-  (document.head || document.documentElement).appendChild(s);
-})();
-
+// İzole dünyada çalışan köprü: injected.js'ten (MAIN world) gelen log mesajlarını
+// sınırlı boyutlu tamponlarda biriktirir ve talep edildiğinde sayfa verisini toplar.
+const CAPS = { console: 500, errors: 200, network: 500, steps: 50 };
 const logs = { console: [], errors: [], network: [] };
+const steps = [];
+
+function push(arr, item, cap) {
+  arr.push(item);
+  if (arr.length > cap) arr.splice(0, arr.length - cap);
+}
 
 window.addEventListener("message", (e) => {
   if (e.source !== window) return;               // sadece aynı pencere
   const d = e.data;
-  if (!d || d.__jira !== true) return;           // bizim mesajımız mı
-  if (d.type === "console") logs.console.push(d.detail);
-  else if (d.type === "error") logs.errors.push(d.detail);
-  else if (d.type === "network") logs.network.push(d.detail);
+  if (!d || d.__jbr !== true) return;            // bizim mesajımız mı
+  if (d.type === "console") push(logs.console, d.detail, CAPS.console);
+  else if (d.type === "error") push(logs.errors, d.detail, CAPS.errors);
+  else if (d.type === "network") push(logs.network, d.detail, CAPS.network);
 }, false);
+
+// ---- Adım kaydedici (repro steps) — yalnızca üst çerçevede ----
+const INTERACTIVE_SELECTOR = 'button, a, input, select, textarea, label, summary, [role="button"], [role="link"], [role="menuitem"], [role="tab"]';
+
+function describeTarget(el) {
+  try {
+    if (!el || !(el instanceof Element)) return String((el && el.nodeName) || "?");
+    // Etkileşimli olmayan bir öğeye tıklanmışsa en yakın etkileşimli atayı tarif et;
+    // yoksa metin İÇERMEDEN yalnızca seçici yaz (sayfa içeriği rapora sızmasın).
+    const target = el.closest(INTERACTIVE_SELECTOR) || el;
+    let desc = target.tagName.toLowerCase();
+    if (target.id) desc += `#${target.id}`;
+    else if (target.classList && target.classList.length) desc += "." + [...target.classList].slice(0, 3).join(".");
+    if (!target.matches(INTERACTIVE_SELECTOR)) return desc;
+    // Metin girdisi alanlarının değerini asla kaydetme; buton etiketleri güvenli.
+    const tag = target.tagName.toLowerCase();
+    const isTextField = (tag === "input" && !["button", "submit", "reset", "checkbox", "radio"].includes(target.type)) || tag === "textarea" || tag === "select";
+    const label = isTextField
+      ? (target.getAttribute("aria-label") || target.getAttribute("placeholder") || target.name || "")
+      : ((target.innerText || target.value || target.getAttribute("aria-label") || "").trim());
+    const short = String(label).trim().slice(0, 40);
+    return short ? `${desc} ("${short}")` : desc;
+  } catch (e) {
+    return "?";
+  }
+}
+
+function addStep(action, detail) {
+  push(steps, { action, detail, url: location.href, ts: new Date().toISOString() }, CAPS.steps);
+}
+
+if (window === window.top) {
+  window.addEventListener("click", e => { try { addStep("tıklama", describeTarget(e.target)); } catch (_) {} }, true);
+  window.addEventListener("change", e => {
+    try {
+      const el = e.target;
+      const tag = el && el.tagName ? el.tagName.toLowerCase() : "";
+      if (tag === "input" || tag === "textarea" || tag === "select") {
+        addStep("girdi", `${describeTarget(el)} — değer girildi (maskelendi)`);
+      }
+    } catch (_) {}
+  }, true);
+  window.addEventListener("submit", e => { try { addStep("form gönderimi", describeTarget(e.target)); } catch (_) {} }, true);
+  window.addEventListener("popstate", () => { try { addStep("gezinme", location.href); } catch (_) {} });
+  window.addEventListener("hashchange", () => { try { addStep("gezinme", location.href); } catch (_) {} });
+}
 
 function safeDumpStorage(stor) {
   const out = {};
@@ -23,13 +71,13 @@ function safeDumpStorage(stor) {
       const k = stor.key(i); const v = stor.getItem(k);
       out[k] = (v && v.length > 20000) ? (`__TRUNCATED__(${v.length})`) : v;
     }
-  } catch(e) {}
+  } catch (e) {}
   return out;
 }
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg?.type === "COLLECT_PAGE_DATA") {
-    const { includeStorage = true, includeDocCookie = true } = msg.options || {};
+    const { includeStorage = true, includeCookies = false } = msg.options || {};
     const meta = {
       url: location.href,
       title: document.title,
@@ -44,14 +92,14 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       name: r.name, initiatorType: r.initiatorType, duration: r.duration, transferSize: r.transferSize
     }));
 
-    const payload = { meta, logs, resources };
+    const payload = { meta, logs, resources, steps };
     if (includeStorage) {
       payload.storage = {
         localStorage: safeDumpStorage(localStorage),
         sessionStorage: safeDumpStorage(sessionStorage)
       };
     }
-    if (includeDocCookie) {
+    if (includeCookies) {
       payload.documentCookie = document.cookie || null; // HttpOnly olmayanlar
     }
     sendResponse(payload);
