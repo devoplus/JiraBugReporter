@@ -1,53 +1,128 @@
 const statusEl = document.getElementById("status");
-const btnStart = document.getElementById("startRec");
-const btnStop  = document.getElementById("stopRec");
-const btnReport= document.getElementById("report");
-const cbCookies= document.getElementById("includeCookies");
-const cbStorage= document.getElementById("includeStorage");
+const btnRecStart = document.getElementById("recStart");
+const btnRecStop = document.getElementById("recStop");
+const btnReport = document.getElementById("report");
+const cbCookies = document.getElementById("includeCookies");
+const cbStorage = document.getElementById("includeStorage");
+const noProfileEl = document.getElementById("noProfile");
+const recentWrap = document.getElementById("recentWrap");
+const recentList = document.getElementById("recentList");
+
+function setStatus(text, cls) {
+  statusEl.textContent = text || "";
+  statusEl.className = "status " + (cls || "muted");
+}
 
 async function getActiveTab() {
-  const [tab] = await chrome.tabs.query({active:true, currentWindow:true});
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   return tab;
 }
 
-/*
-btnStart.onclick = async () => {
-  const tab = await getActiveTab();
-  const ok = await chrome.runtime.sendMessage({ type:"REC_START", tabId: tab.id });
-  if (ok?.ok) {
-    btnStart.disabled = true; btnStop.disabled = false;
-    statusEl.textContent = "Kayıt başladı...";
-  } else {
-    statusEl.textContent = "Kayıt başlatılamadı: " + (ok?.error || "bilinmiyor");
+async function savePrefs() {
+  const { prefs = {} } = await chrome.storage.local.get("prefs");
+  await chrome.storage.local.set({
+    prefs: { ...prefs, includeCookies: cbCookies.checked, includeStorage: cbStorage.checked }
+  });
+}
+
+function updateRecButtons(recording) {
+  btnRecStart.disabled = recording;
+  btnRecStop.disabled = !recording;
+}
+
+function renderRecent(items) {
+  if (!items || !items.length) return;
+  recentWrap.classList.remove("hidden");
+  recentList.textContent = "";
+  for (const it of items.slice(0, 5)) {
+    const li = document.createElement("li");
+    const a = document.createElement("a");
+    a.href = it.url;
+    a.target = "_blank";
+    a.rel = "noopener";
+    a.textContent = it.key;
+    li.appendChild(a);
+    const span = document.createElement("span");
+    span.className = "muted";
+    span.textContent = " — " + String(it.title || "").slice(0, 60);
+    li.appendChild(span);
+    recentList.appendChild(li);
+  }
+}
+
+(async function init() {
+  try {
+    const state = await JBR.getState();
+    cbCookies.checked = !!state.prefs.includeCookies;
+    cbStorage.checked = state.prefs.includeStorage !== false;
+    renderRecent(state.recentIssues);
+    if (!state.profiles.length) {
+      noProfileEl.classList.remove("hidden");
+      btnReport.disabled = true;
+    }
+    const rs = await chrome.runtime.sendMessage({ type: "REC_STATUS" });
+    updateRecButtons(!!(rs && rs.recordingTabId));
+  } catch (e) {
+    setStatus("Başlatma hatası: " + (e && e.message ? e.message : e), "error");
+  }
+})();
+
+document.getElementById("openOptions").onclick = (e) => {
+  e.preventDefault();
+  chrome.runtime.openOptionsPage();
+};
+
+cbCookies.onchange = savePrefs;
+cbStorage.onchange = savePrefs;
+
+btnRecStart.onclick = async () => {
+  btnRecStart.disabled = true;
+  try {
+    const tab = await getActiveTab();
+    if (!tab || tab.id == null) throw new Error("Aktif sekme bulunamadı.");
+    const res = await chrome.runtime.sendMessage({ type: "REC_START", tabId: tab.id });
+    if (!res || !res.ok) throw new Error((res && res.error) || "Bilinmeyen hata");
+    updateRecButtons(true);
+    setStatus("Kayıt başladı. Hatayı yeniden üretin, ardından raporu hazırlayın.");
+  } catch (e) {
+    btnRecStart.disabled = false;
+    setStatus("Kayıt başlatılamadı: " + (e && e.message ? e.message : e), "error");
   }
 };
 
-btnStop.onclick = async () => {
-  const res = await chrome.runtime.sendMessage({ type:"REC_STOP" });
-  btnStart.disabled = false; btnStop.disabled = true;
-  statusEl.textContent = res?.ok ? "Kayıt durdu." : ("Durdurulamadı: " + (res?.error || "bilinmiyor"));
+btnRecStop.onclick = async () => {
+  btnRecStop.disabled = true;
+  try {
+    const res = await chrome.runtime.sendMessage({ type: "REC_STOP" });
+    if (!res || !res.ok) throw new Error((res && res.error) || "Bilinmeyen hata");
+    updateRecButtons(false);
+    setStatus(res.hasRecording ? "Kayıt durdu; rapora eklenmek üzere hazır." : "Kayıt durdu (veri yok).");
+  } catch (e) {
+    updateRecButtons(false);
+    setStatus("Kayıt durdurulamadı: " + (e && e.message ? e.message : e), "error");
+  }
 };
-*/
 
 btnReport.onclick = async () => {
-  statusEl.textContent = "Bilgiler toplanıyor...";
-  const tab = await getActiveTab();
-
-  const data = await chrome.tabs.sendMessage(tab.id, {
-    type:"COLLECT_PAGE_DATA",
-    options: { includeStorage: cbStorage.checked, includeDocCookie: cbCookies.checked }
-  });
-
-  let cookies = [];
-  if (cbCookies.checked) {
-    cookies = (await chrome.runtime.sendMessage({ type:"GET_COOKIES", url: tab.url }))?.cookies || [];
-  }
-  data.cookies = { pageDocumentCookie: data?.documentCookie || null, chromeCookies: cookies };
-
-  const res = await chrome.runtime.sendMessage({ type:"CREATE_JIRA", tabId: tab.id, payload: data });
-  if (res?.ok) {
-    statusEl.innerHTML = `Oluşturuldu: <a href="${res.url}" target="_blank">#${res.key}</a>`;
-  } else {
-    statusEl.textContent = "Hata: " + (res?.error || "Bilinmiyor");
+  btnReport.disabled = true;
+  setStatus("Bilgiler toplanıyor...");
+  try {
+    const tab = await getActiveTab();
+    if (!tab || tab.id == null) throw new Error("Aktif sekme bulunamadı.");
+    await savePrefs();
+    const res = await chrome.runtime.sendMessage({
+      type: "PREPARE_REPORT",
+      tab: { id: tab.id, url: tab.url, title: tab.title, windowId: tab.windowId },
+      options: {
+        includeCookies: cbCookies.checked,
+        includeStorage: cbStorage.checked,
+        includeDocCookie: cbCookies.checked
+      }
+    });
+    if (!res || !res.ok) throw new Error((res && res.error) || "Bilinmeyen hata");
+    window.close();
+  } catch (e) {
+    setStatus("Hata: " + (e && e.message ? e.message : e), "error");
+    btnReport.disabled = false;
   }
 };

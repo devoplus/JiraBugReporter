@@ -1,0 +1,113 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>Jira Bug Reporter — Rapor</title>
+  <link rel="stylesheet" href="popup.css" />
+  <link rel="stylesheet" href="report.css" />
+</head>
+
+<body class="report-body">
+  <div class="report">
+    <div class="header">
+      <div class="logo" aria-hidden="true">
+        <img src="icons/icon32.png" alt="" width="32" height="32" />
+      </div>
+      <div class="grow">
+        <div class="title">Bilet açılmadan önce raporu gözden geçirin</div>
+        <div class="subtitle muted" id="pageInfo"></div>
+      </div>
+      <div>
+        <label class="field-label" for="profileSelect">Profil</label>
+        <select id="profileSelect"></select>
+      </div>
+    </div>
+
+    <div id="fatal" class="banner error hidden"></div>
+
+    <div id="duplicates" class="banner warn hidden">
+      <div class="label">Benzer açık biletler bulundu — mükerrer kayıt açmadan önce kontrol edin:</div>
+      <ul id="duplicateList"></ul>
+    </div>
+
+    <div class="columns">
+      <div class="col">
+        <div class="group">
+          <label class="field-label" for="summary">Başlık</label>
+          <input id="summary" maxlength="254">
+
+          <label class="field-label" for="description">Açıklama (otomatik rapor bu metnin altına eklenir)</label>
+          <textarea id="description" rows="6" placeholder="Ne yapmaya çalışıyordunuz? Ne oldu, ne bekliyordunuz?"></textarea>
+
+          <div class="row2">
+            <div>
+              <label class="field-label" for="project">Proje</label>
+              <select id="project"></select>
+            </div>
+            <div>
+              <label class="field-label" for="issueType">Issue Türü</label>
+              <select id="issueType"></select>
+            </div>
+          </div>
+
+          <div class="row2">
+            <div>
+              <label class="field-label" for="priority">Öncelik</label>
+              <select id="priority">
+                <option value="">(Varsayılan)</option>
+              </select>
+            </div>
+            <div>
+              <label class="field-label" for="labels">Etiketler (virgülle ayırın)</label>
+              <input id="labels" placeholder="frontend, login">
+            </div>
+          </div>
+          <div id="metaWarn" class="hint warn-text hidden"></div>
+        </div>
+
+        <div class="group">
+          <div class="label">Rapora eklenecekler</div>
+          <label class="check"><input id="incStorage" type="checkbox"> <span id="incStorageLabel">Depolama özeti</span></label>
+          <label class="check"><input id="incCookies" type="checkbox"> <span id="incCookiesLabel">Çerezler</span></label>
+          <label class="check"><input id="incRecording" type="checkbox"> <span id="incRecordingLabel">Ekran kaydı</span></label>
+          <label class="check"><input id="redact" type="checkbox" checked> Hassas verileri maskele (token, JWT, oturum kimlikleri)</label>
+          <div class="hint" id="logSummary"></div>
+        </div>
+
+        <div class="actions">
+          <button id="submit" class="btn" type="button">Jira’da bilet aç</button>
+        </div>
+        <div id="status" class="status muted" aria-live="polite"></div>
+      </div>
+
+      <div class="col">
+        <div class="group">
+          <div class="label">Ekran görüntüsü <span class="hint">— işaretleyin, hassas alanları bulanıklaştırın, kırpın</span></div>
+          <div class="toolbar" id="toolbar">
+            <button data-tool="rect" class="tool active" type="button" title="Dikdörtgen çiz">▭ Dikdörtgen</button>
+            <button data-tool="arrow" class="tool" type="button" title="Ok çiz">↗ Ok</button>
+            <button data-tool="blur" class="tool" type="button" title="Seçili alanı bulanıklaştır">▒ Bulanıklaştır</button>
+            <button data-tool="crop" class="tool" type="button" title="Seçili alana kırp">✂ Kırp</button>
+            <span class="spacer"></span>
+            <button id="undo" class="tool" type="button" title="Geri al">↶ Geri al</button>
+            <button id="resetImg" class="tool" type="button" title="Orijinale dön">⟲ Sıfırla</button>
+          </div>
+          <div class="canvas-wrap" id="canvasWrap">
+            <div class="canvas-stack">
+              <canvas id="shot"></canvas>
+              <canvas id="shotOverlay"></canvas>
+            </div>
+          </div>
+          <div id="noShot" class="hint hidden">Bu sayfadan ekran görüntüsü alınamadı.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="shared.js"></script>
+  <script src="jira.js"></script>
+  <script src="report.js"></script>
+</body>
+
+</html>

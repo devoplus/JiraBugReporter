@@ -1,46 +1,49 @@
-let rec = { mediaRecorder: null, chunks: [], stream: null };
+// Service worker: rapor hazırlama (ekran görüntüsü + sayfa verisi + çerezler),
+// offscreen belge üzerinden sekme kaydı ve eski ayarların taşınması.
+importScripts("shared.js");
 
-async function getSettings() {
-  const s = await chrome.storage.sync.get(["baseUrl","email","token","projectKey","issueType"]);
-  if (!s.baseUrl || !s.email || !s.token || !s.projectKey || !s.issueType) {
-    throw new Error("Ayarlar eksik. Lütfen ayarlar sayfası üzerinden Jira bilgilerinizi doldurun.");
+chrome.runtime.onInstalled.addListener(() => { JBR.migrateLegacySettings().catch(() => {}); });
+chrome.runtime.onStartup.addListener(() => { JBR.migrateLegacySettings().catch(() => {}); });
+
+// ---- Offscreen belge / sekme kaydı ----
+async function ensureOffscreen() {
+  const has = await chrome.offscreen.hasDocument();
+  if (!has) {
+    await chrome.offscreen.createDocument({
+      url: "offscreen.html",
+      reasons: ["USER_MEDIA"],
+      justification: "Sekme ekran kaydı için MediaRecorder çalıştırma"
+    });
   }
-  const auth = "Basic " + btoa(`${s.email}:${s.token}`);
-  return { ...s, auth };
 }
 
-async function capturePng(tabId) {
-  const dataUrl = await chrome.tabs.captureVisibleTab(undefined, {format:"png"});
-  const res = await fetch(dataUrl);
-  return await res.blob(); // image/png
+async function startRecording(tabId) {
+  const sess = await chrome.storage.session.get("recordingTabId");
+  if (sess.recordingTabId) throw new Error("Zaten devam eden bir kayıt var.");
+  await ensureOffscreen();
+  const streamId = await chrome.tabCapture.getMediaStreamId({ targetTabId: tabId });
+  const res = await chrome.runtime.sendMessage({ target: "offscreen", type: "OFFSCREEN_REC_START", streamId });
+  if (!res || !res.ok) {
+    await chrome.offscreen.closeDocument().catch(() => {});
+    throw new Error((res && res.error) || "Kayıt başlatılamadı.");
+  }
+  await chrome.storage.session.set({ recordingTabId: tabId });
 }
 
-async function recStart(tabId) {
-  if (rec.mediaRecorder) throw new Error("Zaten kayıt var.");
-  rec.stream = await chrome.tabCapture.capture({
-    audio: false,
-    video: true,
-    videoConstraints: { mandatory: { maxWidth: 1280, maxHeight: 720, maxFrameRate: 10 } }
-  });
-  if (!rec.stream) throw new Error("Sekme yakalanamadı.");
-  rec.chunks = [];
-  rec.mediaRecorder = new MediaRecorder(rec.stream, { mimeType: "video/webm;codecs=vp9" });
-  rec.mediaRecorder.ondataavailable = (e) => { if (e.data && e.data.size) rec.chunks.push(e.data); };
-  rec.mediaRecorder.start(1000);
+async function stopRecording() {
+  let hasData = false;
+  if (await chrome.offscreen.hasDocument()) {
+    try {
+      const res = await chrome.runtime.sendMessage({ target: "offscreen", type: "OFFSCREEN_REC_STOP" });
+      hasData = !!(res && res.ok && res.hasData);
+    } catch (e) {}
+    await chrome.offscreen.closeDocument().catch(() => {});
+  }
+  await chrome.storage.session.remove("recordingTabId");
+  return hasData;
 }
 
-async function recStop() {
-  if (!rec.mediaRecorder) return null;
-  await new Promise(res => {
-    rec.mediaRecorder.onstop = res;
-    try { rec.mediaRecorder.stop(); } catch {}
-  });
-  rec.stream.getTracks().forEach(t => t.stop());
-  const blob = new Blob(rec.chunks, { type: "video/webm" });
-  rec.mediaRecorder = null; rec.stream = null; rec.chunks = [];
-  return blob;
-}
-
+// ---- Çerezler ----
 async function getAllCookiesForUrl(url) {
   try {
     const list = await chrome.cookies.getAll({ url });
@@ -48,146 +51,85 @@ async function getAllCookiesForUrl(url) {
       name: c.name, value: c.value, domain: c.domain, path: c.path,
       secure: c.secure, httpOnly: c.httpOnly, sameSite: c.sameSite, expirationDate: c.expirationDate
     }));
-  } catch(e) {
+  } catch (e) {
     return [];
   }
 }
 
-async function createIssue(settings, payload) {
-  const p = (text) => ({ type: "paragraph", content: [{ type: "text", text }] });
-  const heading = (level, text) => ({
-    type: "heading",
-    attrs: { level },
-    content: [{ type: "text", text }]
-  });
-  const bulletList = (items) => ({
-    type: "bulletList",
-    content: items.map(t => ({ type: "listItem", content: [p(t)] }))
-  });
-  const codeBlock = (language, text) => ({
-    type: "codeBlock",
-    attrs: { language },
-    content: [{ type: "text", text }]
-  });
+// ---- Rapor hazırlama: veri topla, storage.session'a koy, rapor sekmesini aç ----
+async function prepareReport(tab, options) {
+  // Devam eden kayıt varsa otomatik durdur; blob IndexedDB'de rapor sayfasını bekler.
+  const sess = await chrome.storage.session.get("recordingTabId");
+  if (sess.recordingTabId) await stopRecording();
 
-  const url = payload.meta.url;
-  const host = new URL(url).hostname;
+  // Ekran görüntüsü rapor sekmesi açılmadan ÖNCE, hedef sekme görünürken alınmalı.
+  let screenshot = null;
+  try {
+    screenshot = await chrome.tabs.captureVisibleTab(tab.windowId, { format: "png" });
+  } catch (e) {}
 
-  const summaryItems = [
-    `URL: ${url}`,
-    `Zaman: ${payload.meta.time}`,
-    `UA: ${payload.meta.userAgent}`,
-    `Viewport: ${payload.meta.viewport.w}x${payload.meta.viewport.h}`,
-    `Hata sayısı: ${payload.logs.errors.length}`,
-    `Console girdisi: ${payload.logs.console.length}`,
-    `Network girdisi: ${payload.logs.network.length} (resources: ${payload.resources.length})`,
-    `Cookies: ${payload.cookies ? "eklendi" : "yok"}`,
-    `Storage: ${payload.storage ? "eklendi" : "yok"}`,
-    `Ekran kaydı: ${payload._hasRecording ? "eklendi" : "yok"}`
-  ];
+  // Sayfa verisini yalnızca üst çerçeveden iste (iframe'lerin yarışmasını önler).
+  let pageData = null;
+  try {
+    pageData = await chrome.tabs.sendMessage(tab.id, { type: "COLLECT_PAGE_DATA", options }, { frameId: 0 });
+  } catch (e) {}
+  if (!pageData) {
+    pageData = {
+      meta: {
+        url: tab.url || "", title: tab.title || "", userAgent: navigator.userAgent,
+        viewport: null, time: new Date().toISOString(),
+        note: "İçerik betiğine erişilemedi (kısıtlı sayfa veya uzantı kurulumundan önce açılmış sekme); yalnızca temel bilgiler toplandı."
+      },
+      logs: { console: [], errors: [], network: [] },
+      resources: [], steps: []
+    };
+  }
 
-  const previewJson = JSON.stringify(
-    {
-      meta: payload.meta,
-      sampleErrors: payload.logs.errors.slice(0, 3),
-      sampleConsole: payload.logs.console.slice(0, 5),
-    },
-    null, 2
-  ).slice(0, 4000);
+  if (options && options.includeCookies) {
+    pageData.cookies = {
+      pageDocumentCookie: pageData.documentCookie || null,
+      chromeCookies: await getAllCookiesForUrl(tab.url)
+    };
+  }
+  delete pageData.documentCookie;
 
-  const descriptionADF = {
-    version: 1,
-    type: "doc",
-    content: [
-      heading(3, "Otomatik Rapor"),
-      bulletList(summaryItems),
-      heading(4, "Özet JSON"),
-      codeBlock("json", previewJson),
-      p("Tam ayrıntılar için eklerdeki 'page-report.json' ve 'screenshot.png' dosyalarına bakınız.")
-    ]
+  const pendingReport = {
+    payload: pageData,
+    screenshot,
+    tab: { id: tab.id, url: tab.url, title: tab.title },
+    options: options || {},
+    createdAt: new Date().toISOString()
   };
-
-  const body = {
-    fields: {
-      project: { key: settings.projectKey },
-      issuetype: { name: settings.issueType },
-      summary: `[Bug] ${payload.meta.title} @ ${host}`,
-      description: descriptionADF
-    }
-  };
-
-  const r = await fetch(`${settings.baseUrl}/rest/api/3/issue`, {
-    method: "POST",
-    headers: {
-      "Authorization": settings.auth,
-      "Content-Type": "application/json",
-      "Accept": "application/json"
-    },
-    body: JSON.stringify(body)
-  });
-
-  if (!r.ok) throw new Error(`Issue create failed: ${r.status} ${await r.text()}`);
-  return await r.json();
+  try {
+    await chrome.storage.session.set({ pendingReport });
+  } catch (e) {
+    // Kota aşımı: ekran görüntüsüz tekrar dene.
+    pendingReport.screenshot = null;
+    pendingReport.payload.meta.note = ((pendingReport.payload.meta.note || "") + " Ekran görüntüsü boyut sınırı nedeniyle rapora eklenemedi.").trim();
+    await chrome.storage.session.set({ pendingReport });
+  }
+  await chrome.tabs.create({ url: chrome.runtime.getURL("report.html") });
 }
 
-
-async function uploadAttachment(settings, issueIdOrKey, files) {
-  const form = new FormData();
-  for (const file of files) form.append("file", file.blob, file.name);
-
-  const r = await fetch(`${settings.baseUrl}/rest/api/3/issue/${issueIdOrKey}/attachments`, {
-    method: "POST",
-    headers: {
-      "Authorization": settings.auth,
-      "X-Atlassian-Token": "no-check",
-      "Accept": "application/json"
-    },
-    body: form
-  });
-  if (!r.ok) throw new Error(`Attachment failed: ${r.status} ${await r.text()}`);
-  return await r.json();
-}
-
-chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+  if (msg && msg.target === "offscreen") return; // offscreen belgesine yönelik mesajlar
   (async () => {
     try {
       if (msg?.type === "REC_START") {
-        await recStart(msg.tabId);
-        sendResponse({ ok: true }); return;
-      }
-      if (msg?.type === "REC_STOP") {
-        const blob = await recStop();
-        globalThis.__lastRecording = blob || null;
-        sendResponse({ ok: true }); return;
-      }
-      if (msg?.type === "GET_COOKIES") {
-        const cookies = await getAllCookiesForUrl(msg.url);
-        sendResponse({ ok: true, cookies }); return;
-      }
-      if (msg?.type === "CREATE_JIRA") {
-        const settings = await getSettings();
-
-        const screenshot = await capturePng(msg.tabId);
-
-        const files = [];
-        const reportJson = new Blob([JSON.stringify(msg.payload, null, 2)], {type:"application/json"});
-        files.push({ name:"page-report.json", blob: reportJson });
-        files.push({ name:"screenshot.png",   blob: screenshot });
-
-        if (globalThis.__lastRecording && globalThis.__lastRecording.size > 0) {
-          msg.payload._hasRecording = true;
-          files.push({ name:"tab-recording.webm", blob: globalThis.__lastRecording });
-          globalThis.__lastRecording = null;
-        }
-
-        const issue = await createIssue(settings, msg.payload);
-        await uploadAttachment(settings, issue.key, files);
-
-        sendResponse({ ok: true, key: issue.key, url: `${settings.baseUrl}/browse/${issue.key}`});
-        return;
+        await startRecording(msg.tabId);
+        sendResponse({ ok: true });
+      } else if (msg?.type === "REC_STOP") {
+        const hasRecording = await stopRecording();
+        sendResponse({ ok: true, hasRecording });
+      } else if (msg?.type === "REC_STATUS") {
+        const s = await chrome.storage.session.get("recordingTabId");
+        sendResponse({ ok: true, recordingTabId: s.recordingTabId || null });
+      } else if (msg?.type === "PREPARE_REPORT") {
+        await prepareReport(msg.tab, msg.options);
+        sendResponse({ ok: true });
       }
     } catch (e) {
-      sendResponse({ ok: false, error: String(e.message || e) });
+      sendResponse({ ok: false, error: String((e && e.message) || e) });
     }
   })();
   return true;

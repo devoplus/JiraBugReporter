@@ -1,0 +1,180 @@
+.report-body {
+  background: var(--surface);
+  padding: 20px;
+}
+
+.report {
+  max-width: 1200px;
+  margin: 0 auto;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px;
+}
+
+.report .header .grow { flex: 1; }
+
+.columns {
+  display: grid;
+  grid-template-columns: minmax(320px, 1fr) minmax(320px, 1.2fr);
+  gap: 18px;
+}
+
+@media (max-width: 900px) {
+  .columns { grid-template-columns: 1fr; }
+}
+
+.field-label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.report input:not([type="checkbox"]),
+.report textarea,
+.report select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font: inherit;
+  color: var(--text);
+  background: var(--bg);
+}
+
+.report textarea { resize: vertical; }
+
+.row2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+}
+
+.banner {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin: 10px 0;
+}
+
+.banner.warn { background: #fef9c3; border-color: #fde047; }
+.banner.error { background: #fee2e2; border-color: #fca5a5; color: var(--error); }
+.warn-text { color: #b45309; }
+
+.banner ul { margin: 6px 0 0; padding-left: 18px; }
+
+.hidden { display: none !important; }
+
+/* Ekran görüntüsü düzenleyici */
+.toolbar {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.toolbar .spacer { flex: 1; }
+
+.tool {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tool.active {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--primary-ink);
+}
+
+.canvas-wrap {
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: auto;
+  max-height: 70vh;
+  background: repeating-conic-gradient(#f3f4f6 0% 25%, #fff 0% 50%) 50% / 20px 20px;
+}
+
+/* Stack, ana canvas'ın görüntülenen boyutuna sarılır; overlay onunla birebir hizalanır
+   ve kaydırma sırasında birlikte hareket eder. */
+.canvas-stack {
+  position: relative;
+}
+
+.canvas-stack canvas {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+#shotOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.recent ul, #recentList {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+
+.banner.warn a, .banner a { color: inherit; font-weight: 700; }
+
+.btn.secondary {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+/* Ayarlar sayfası */
+.options-columns {
+  grid-template-columns: 260px 1fr;
+}
+
+@media (max-width: 700px) {
+  .options-columns { grid-template-columns: 1fr; }
+}
+
+.profile-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.profile-item {
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.profile-item.active {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--primary-ink);
+}
+
+.profile-item.active .muted { color: var(--primary-ink); opacity: .8; }
