@@ -4,18 +4,14 @@ const $ = (id) => document.getElementById(id);
 let state = null;
 let currentId = null;
 
-function setStatus(text, cls) {
-  const el = $("status");
-  el.textContent = text || "";
-  el.className = "status " + (cls || "muted");
-}
+const setStatus = (text, cls) => JBR.setStatus($("status"), text, cls);
 
 function formProfile() {
   return {
     id: currentId || JBR.newProfileId(),
     name: $("name").value.trim() || "Adsız profil",
     domains: $("domains").value.trim(),
-    baseUrl: Jira.normalizeBaseUrl($("baseUrl").value),
+    baseUrl: JBR.normalizeBaseUrl($("baseUrl").value),
     email: $("email").value.trim(),
     token: $("token").value,
     projectKey: $("projectKey").value.trim().toUpperCase(),
@@ -24,7 +20,7 @@ function formProfile() {
 }
 
 function validate(p) {
-  if (!/^https:\/\/[^\s/]+\.[^\s/]+/i.test(p.baseUrl)) return "Jira adresi https:// ile başlayan geçerli bir adres olmalıdır (ör. https://company.atlassian.net).";
+  if (!JBR.isValidJiraBase(p.baseUrl)) return "Jira adresi https:// ile başlayan geçerli bir adres olmalıdır (ör. https://company.atlassian.net).";
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(p.email)) return "Geçerli bir e-posta adresi girin.";
   if (!p.token) return "API belirteci boş olamaz.";
   if (!/^[A-Z][A-Z0-9_]*$/.test(p.projectKey)) return "Proje anahtarı geçersiz görünüyor (ör. WEB, PROJ1).";
@@ -91,16 +87,21 @@ $("save").onclick = async () => {
     const idx = state.profiles.findIndex(x => x.id === p.id);
     if (idx >= 0) state.profiles[idx] = p;
     else state.profiles.push(p);
-    if ($("isDefault").checked || state.profiles.length === 1) state.defaultProfileId = p.id;
-    else if (state.defaultProfileId === p.id && !$("isDefault").checked) {
-      state.defaultProfileId = state.profiles[0] ? state.profiles[0].id : null;
+    if ($("isDefault").checked || state.profiles.length === 1) {
+      state.defaultProfileId = p.id;
+    } else if (state.defaultProfileId === p.id) {
+      // İşaret kaldırıldı: varsayılanı BAŞKA bir profile devret; tek profil
+      // varsa varsayılan kalmak zorunda (aksi hâlde işlem sessiz no-op olurdu).
+      const other = state.profiles.find(x => x.id !== p.id);
+      state.defaultProfileId = other ? other.id : p.id;
+      if (!other) setStatus("Tek profil varken varsayılan işareti kaldırılamaz.", "error");
     }
     currentId = p.id;
     await persist();
     renderList();
     setStatus("Kaydedildi.", "success");
   } catch (e) {
-    setStatus("Kaydedilemedi: " + (e && e.message ? e.message : e), "error");
+    setStatus("Kaydedilemedi: " + JBR.errMsg(e), "error");
   }
 };
 
@@ -125,10 +126,14 @@ $("test").onclick = async () => {
     const p = formProfile();
     const err = validate(p);
     if (err) throw new Error(err);
-    const me = await Jira.myself(p);
-    setStatus(`Bağlantı başarılı: ${me.displayName || me.emailAddress || "kullanıcı doğrulandı"}. Proje listesi alınıyor...`);
 
-    const projects = await Jira.listProjects(p);
+    // Üç istek birbirinden bağımsızdır; paralel çalıştırılır.
+    const [me, projects, types] = await Promise.all([
+      Jira.myself(p),
+      Jira.listProjects(p),
+      p.projectKey ? Jira.listIssueTypes(p, p.projectKey).catch(() => []) : Promise.resolve([])
+    ]);
+
     const dl = $("projectOptions");
     dl.textContent = "";
     for (const proj of projects) {
@@ -137,34 +142,27 @@ $("test").onclick = async () => {
       opt.label = proj.name;
       dl.appendChild(opt);
     }
+    const tdl = $("issueTypeOptions");
+    tdl.textContent = "";
+    types.forEach(t => {
+      const opt = document.createElement("option");
+      opt.value = t.name;
+      tdl.appendChild(opt);
+    });
 
+    let msg = `Bağlantı başarılı (${me.displayName || me.emailAddress || p.email}). ${projects.length} proje bulundu.`;
     const known = projects.find(x => x.key === p.projectKey);
-    let msg = `Bağlantı başarılı (${me.displayName || p.email}). ${projects.length} proje bulundu.`;
     if (p.projectKey && !known) {
       msg += ` Dikkat: "${p.projectKey}" anahtarlı bir proje görünmüyor.`;
       setStatus(msg, "error");
+    } else if (types.length && !types.some(t => t.name === p.issueType)) {
+      msg += ` Dikkat: "${p.issueType}" bu projede tanımlı değil. Kullanılabilir: ${types.map(t => t.name).join(", ")}.`;
+      setStatus(msg, "error");
     } else {
-      if (p.projectKey) {
-        try {
-          const types = await Jira.listIssueTypes(p, p.projectKey);
-          const tdl = $("issueTypeOptions");
-          tdl.textContent = "";
-          types.forEach(t => {
-            const opt = document.createElement("option");
-            opt.value = t.name;
-            tdl.appendChild(opt);
-          });
-          if (types.length && !types.some(t => t.name === p.issueType)) {
-            msg += ` Dikkat: "${p.issueType}" bu projede tanımlı değil. Kullanılabilir: ${types.map(t => t.name).join(", ")}.`;
-            setStatus(msg, "error");
-            return;
-          }
-        } catch (e) {}
-      }
       setStatus(msg, "success");
     }
   } catch (e) {
-    setStatus("Test başarısız: " + (e && e.message ? e.message : e), "error");
+    setStatus("Test başarısız: " + JBR.errMsg(e), "error");
   } finally {
     btn.disabled = false;
   }
@@ -178,6 +176,6 @@ $("test").onclick = async () => {
       state.profiles.find(p => p.id === state.defaultProfileId) || state.profiles[0] || null
     );
   } catch (e) {
-    setStatus("Ayarlar yüklenemedi: " + (e && e.message ? e.message : e), "error");
+    setStatus("Ayarlar yüklenemedi: " + JBR.errMsg(e), "error");
   }
 })();

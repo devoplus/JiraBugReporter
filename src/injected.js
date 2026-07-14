@@ -40,10 +40,31 @@
     }
   }
 
+  // Konuşkan sayfalarda (animasyon karesi başına log vb.) serileştirme +
+  // postMessage maliyetinin sayfayı yavaşlatmaması için saniyelik hız sınırı.
+  const CONSOLE_LIMIT_PER_SEC = 30;
+  let winStart = 0, winCount = 0, dropped = 0;
+  function consoleBudgetOk() {
+    const now = Date.now();
+    if (now - winStart >= 1000) {
+      if (dropped > 0) {
+        send("console", { level: "info", args: [`[JiraBugReporter] ${dropped} console girdisi hız sınırı nedeniyle atlandı`], ts: now });
+        dropped = 0;
+      }
+      winStart = now;
+      winCount = 0;
+    }
+    if (winCount >= CONSOLE_LIMIT_PER_SEC) { dropped++; return false; }
+    winCount++;
+    return true;
+  }
+
   ["log", "info", "warn", "error", "debug"].forEach(level => {
     const orig = console[level];
     console[level] = function (...args) {
-      try { send("console", { level, args: args.map(a => serialize(a)), ts: Date.now() }); } catch (e) {}
+      try {
+        if (consoleBudgetOk()) send("console", { level, args: args.map(a => serialize(a)), ts: Date.now() });
+      } catch (e) {}
       return orig.apply(this, args);
     };
   });

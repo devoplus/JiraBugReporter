@@ -3,7 +3,7 @@
 // rapor sayfasının okuyabilmesi için IndexedDB'ye yazılır.
 let rec = null;
 
-async function start(streamId) {
+async function start(streamId, tabId) {
   if (rec) throw new Error("Zaten devam eden bir kayıt var.");
   const stream = await navigator.mediaDevices.getUserMedia({
     audio: false,
@@ -22,12 +22,12 @@ async function start(streamId) {
   const mr = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 1500000 });
   mr.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
   mr.start(1000);
-  rec = { mr, stream, chunks };
+  rec = { mr, stream, chunks, tabId };
 }
 
 async function stop() {
   if (!rec) return 0;
-  const { mr, stream, chunks } = rec;
+  const { mr, stream, chunks, tabId } = rec;
   rec = null;
   if (mr.state !== "inactive") {
     await new Promise(resolve => {
@@ -39,7 +39,8 @@ async function stop() {
   stream.getTracks().forEach(t => t.stop());
   const blob = new Blob(chunks, { type: "video/webm" });
   if (blob.size > 0) {
-    await JBR.idbSet("recording", { blob, time: Date.now() });
+    // tabId saklanır ki kayıt yalnızca ait olduğu sekmenin raporuna önerilsin.
+    await JBR.saveRecording({ blob, time: Date.now(), tabId });
   }
   return blob.size;
 }
@@ -49,14 +50,14 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   (async () => {
     try {
       if (msg.type === "OFFSCREEN_REC_START") {
-        await start(msg.streamId);
+        await start(msg.streamId, msg.tabId);
         sendResponse({ ok: true });
       } else if (msg.type === "OFFSCREEN_REC_STOP") {
         const size = await stop();
         sendResponse({ ok: true, hasData: size > 0 });
       }
     } catch (e) {
-      sendResponse({ ok: false, error: String((e && e.message) || e) });
+      sendResponse({ ok: false, error: JBR.errMsg(e) });
     }
   })();
   return true;

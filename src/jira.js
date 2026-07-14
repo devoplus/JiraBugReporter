@@ -1,10 +1,9 @@
 // Jira Cloud REST API istemcisi (options ve report sayfalarında kullanılır).
+// shared.js'in (JBR) bu dosyadan önce yüklenmesi gerekir.
 const Jira = (() => {
   const TIMEOUT_MS = 30000;
 
-  function normalizeBaseUrl(raw) {
-    return String(raw || "").trim().replace(/\/+$/, "");
-  }
+  const normalizeBaseUrl = JBR.normalizeBaseUrl;
 
   // UTF-8 güvenli Basic auth (btoa tek başına Latin-1 dışı karakterlerde hata verir)
   function authHeader(email, token) {
@@ -16,7 +15,7 @@ const Jira = (() => {
 
   async function jiraFetch(profile, path, opts = {}) {
     const base = normalizeBaseUrl(profile.baseUrl);
-    if (!/^https:\/\/[^\s/]+/i.test(base)) throw new Error("Jira adresi https:// ile başlamalıdır.");
+    if (!JBR.isValidJiraBase(base)) throw new Error("Jira adresi https:// ile başlamalıdır.");
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), opts.timeout || TIMEOUT_MS);
     let res;
@@ -35,7 +34,7 @@ const Jira = (() => {
     } catch (e) {
       throw new Error(e && e.name === "AbortError"
         ? "Jira isteği zaman aşımına uğradı."
-        : "Jira'ya bağlanılamadı: " + (e && e.message ? e.message : e));
+        : "Jira'ya bağlanılamadı: " + JBR.errMsg(e));
     } finally {
       clearTimeout(timer);
     }
@@ -87,7 +86,7 @@ const Jira = (() => {
   const orderedList = (items) => ({ type: "orderedList", content: items.map(t => ({ type: "listItem", content: [paragraph(t)] })) });
   const codeBlock = (language, text) => ({ type: "codeBlock", attrs: { language }, content: [{ type: "text", text }] });
 
-  function buildDescription({ userText, summaryItems, steps, previewJson }) {
+  function buildDescription({ userText, summaryItems, steps, previewJson, attachmentNames }) {
     const content = [];
     const free = String(userText || "").trim();
     if (free) {
@@ -100,7 +99,9 @@ const Jira = (() => {
     if (previewJson) {
       content.push(heading(4, "Özet JSON"), codeBlock("json", previewJson));
     }
-    content.push(paragraph("Tam ayrıntılar için eklerdeki 'page-report.json' ve 'screenshot.png' dosyalarına bakınız."));
+    if (attachmentNames && attachmentNames.length) {
+      content.push(paragraph(`Tam ayrıntılar için eklerdeki dosyalara bakınız: ${attachmentNames.join(", ")}.`));
+    }
     return { version: 1, type: "doc", content };
   }
 

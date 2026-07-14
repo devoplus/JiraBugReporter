@@ -22,7 +22,7 @@ async function startRecording(tabId) {
   if (sess.recordingTabId) throw new Error("Zaten devam eden bir kayıt var.");
   await ensureOffscreen();
   const streamId = await chrome.tabCapture.getMediaStreamId({ targetTabId: tabId });
-  const res = await chrome.runtime.sendMessage({ target: "offscreen", type: "OFFSCREEN_REC_START", streamId });
+  const res = await chrome.runtime.sendMessage({ target: "offscreen", type: "OFFSCREEN_REC_START", streamId, tabId });
   if (!res || !res.ok) {
     await chrome.offscreen.closeDocument().catch(() => {});
     throw new Error((res && res.error) || "Kayıt başlatılamadı.");
@@ -74,7 +74,9 @@ async function prepareReport(tab, options) {
     pageData = await chrome.tabs.sendMessage(tab.id, { type: "COLLECT_PAGE_DATA", options }, { frameId: 0 });
   } catch (e) {}
   if (!pageData) {
+    // Stub yük: rapor sayfası collectFailed bayrağını görünür bir uyarıya çevirir.
     pageData = {
+      collectFailed: true,
       meta: {
         url: tab.url || "", title: tab.title || "", userAgent: navigator.userAgent,
         viewport: null, time: new Date().toISOString(),
@@ -100,15 +102,39 @@ async function prepareReport(tab, options) {
     options: options || {},
     createdAt: new Date().toISOString()
   };
-  try {
-    await chrome.storage.session.set({ pendingReport });
-  } catch (e) {
-    // Kota aşımı: ekran görüntüsüz tekrar dene.
-    pendingReport.screenshot = null;
-    pendingReport.payload.meta.note = ((pendingReport.payload.meta.note || "") + " Ekran görüntüsü boyut sınırı nedeniyle rapora eklenemedi.").trim();
-    await chrome.storage.session.set({ pendingReport });
+  // storage.session kotasına (~10MB) sığana kadar kademeli küçült:
+  // 1) olduğu gibi, 2) ekran görüntüsüz, 3) storage dökümü ve log kuyrukları kırpılmış.
+  const shrinkSteps = [
+    () => {},
+    () => {
+      pendingReport.screenshot = null;
+      appendNote(pendingReport, "Ekran görüntüsü boyut sınırı nedeniyle rapora eklenemedi.");
+    },
+    () => {
+      const p = pendingReport.payload;
+      delete p.storage;
+      const logs = p.logs || {};
+      ["console", "network"].forEach(k => { if (Array.isArray(logs[k])) logs[k] = logs[k].slice(-100); });
+      if (Array.isArray(p.resources)) p.resources = p.resources.slice(-50);
+      appendNote(pendingReport, "Depolama dökümü ve log kuyrukları boyut sınırı nedeniyle kırpıldı.");
+    }
+  ];
+  let stored = false;
+  for (const shrink of shrinkSteps) {
+    shrink();
+    try {
+      await chrome.storage.session.set({ pendingReport });
+      stored = true;
+      break;
+    } catch (e) {}
   }
+  if (!stored) throw new Error("Rapor verisi boyut sınırına sığmadı; lütfen 'Depolama Özeti' seçeneğini kapatıp tekrar deneyin.");
   await chrome.tabs.create({ url: chrome.runtime.getURL("report.html") });
+}
+
+function appendNote(pendingReport, note) {
+  const meta = pendingReport.payload.meta;
+  meta.note = ((meta.note || "") + " " + note).trim();
 }
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
@@ -129,7 +155,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
         sendResponse({ ok: true });
       }
     } catch (e) {
-      sendResponse({ ok: false, error: String((e && e.message) || e) });
+      sendResponse({ ok: false, error: JBR.errMsg(e) });
     }
   })();
   return true;

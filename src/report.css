@@ -57,20 +57,10 @@
   font-weight: 500;
 }
 
-.banner {
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 10px 12px;
-  margin: 10px 0;
-}
-
-.banner.warn { background: #fef9c3; border-color: #fde047; }
-.banner.error { background: #fee2e2; border-color: #fca5a5; color: var(--error); }
+/* .banner, .hidden ve .btn.secondary tanımları popup.css'te (her sayfa önce onu yükler) */
 .warn-text { color: #b45309; }
 
 .banner ul { margin: 6px 0 0; padding-left: 18px; }
-
-.hidden { display: none !important; }
 
 /* Ekran görüntüsü düzenleyici */
 .toolbar {
@@ -128,18 +118,7 @@
   touch-action: none;
 }
 
-.recent ul, #recentList {
-  margin: 6px 0 0;
-  padding-left: 18px;
-}
-
-.banner.warn a, .banner a { color: inherit; font-weight: 700; }
-
-.btn.secondary {
-  background: var(--surface);
-  color: var(--text);
-  border-color: var(--border);
-}
+.banner a { color: inherit; font-weight: 700; }
 
 /* Ayarlar sayfası */
 .options-columns {

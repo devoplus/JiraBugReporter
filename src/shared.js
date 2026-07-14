@@ -2,6 +2,25 @@
 // tarafından paylaşılan yardımcılar: profil deposu, maskeleme, IndexedDB.
 const JBR = (() => {
 
+  // ---- Genel yardımcılar ----
+  function errMsg(e) {
+    if (e && typeof e.message === "string" && e.message) return e.message;
+    return String(e);
+  }
+
+  function setStatus(el, text, cls) {
+    el.textContent = text || "";
+    el.className = "status " + (cls || "muted");
+  }
+
+  function normalizeBaseUrl(raw) {
+    return String(raw || "").trim().replace(/\/+$/, "");
+  }
+
+  function isValidJiraBase(base) {
+    return /^https:\/\/[^\s/]+/i.test(base);
+  }
+
   // ---- Profil / durum deposu (chrome.storage.local) ----
   async function getState() {
     const s = await chrome.storage.local.get(["profiles", "defaultProfileId", "prefs", "recentIssues"]);
@@ -11,6 +30,11 @@ const JBR = (() => {
       prefs: { includeCookies: false, includeStorage: true, redact: true, ...(s.prefs || {}) },
       recentIssues: s.recentIssues || []
     };
+  }
+
+  async function setPrefs(patch) {
+    const { prefs = {} } = await chrome.storage.local.get("prefs");
+    await chrome.storage.local.set({ prefs: { ...prefs, ...patch } });
   }
 
   function hostMatches(pattern, host) {
@@ -42,17 +66,18 @@ const JBR = (() => {
     return "p_" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
   }
 
-  // Eski tekil ayarları (storage.sync) profil modeline taşı ve sync'ten sil;
-  // API belirteci artık cihazlar arası senkronize edilmez.
+  // Eski tekil ayarları (storage.sync) profil modeline taşı. Sync'ten yalnızca
+  // API belirteci silinir (artık cihazlar arası senkronize edilmemeli); diğer
+  // alanlar bırakılır ki kullanıcının diğer cihazları da taşıma yapabilsin.
   async function migrateLegacySettings() {
     const local = await chrome.storage.local.get("profiles");
     if (local.profiles && local.profiles.length) return;
     const s = await chrome.storage.sync.get(["baseUrl", "email", "token", "projectKey", "issueType"]);
-    if (!s.baseUrl && !s.token) return;
+    if (!s.baseUrl && !s.email && !s.token) return;
     const profile = {
       id: newProfileId(),
       name: "Varsayılan",
-      baseUrl: String(s.baseUrl || "").trim().replace(/\/+$/, ""),
+      baseUrl: normalizeBaseUrl(s.baseUrl),
       email: s.email || "",
       token: s.token || "",
       projectKey: s.projectKey || "",
@@ -60,7 +85,7 @@ const JBR = (() => {
       domains: ""
     };
     await chrome.storage.local.set({ profiles: [profile], defaultProfileId: profile.id });
-    await chrome.storage.sync.remove(["baseUrl", "email", "token", "projectKey", "issueType"]);
+    await chrome.storage.sync.remove(["token"]);
   }
 
   async function addRecentIssue(entry) {
@@ -83,23 +108,23 @@ const JBR = (() => {
     return s;
   }
 
-  // Rapor yükündeki token benzeri değerleri maskeler (kopya üzerinde çalışır).
+  // Yükteki TÜM string yaprakları özyinelemeli maskeler; alan listesi tutmak
+  // yerine genel yürüyüş yapılır ki content/injected tarafına eklenen yeni
+  // alanlar (steps, errors, meta...) maskelemeden kaçamasın.
+  function redactDeep(value) {
+    if (typeof value === "string") return redactText(value);
+    if (Array.isArray(value)) return value.map(redactDeep);
+    if (value && typeof value === "object") {
+      const out = {};
+      for (const k of Object.keys(value)) out[k] = redactDeep(value[k]);
+      return out;
+    }
+    return value;
+  }
+
   function redactPayload(payload) {
-    const clone = JSON.parse(JSON.stringify(payload));
-    const redactMap = obj => { if (obj) for (const k of Object.keys(obj)) obj[k] = redactText(obj[k]); };
-    if (clone.storage) {
-      redactMap(clone.storage.localStorage);
-      redactMap(clone.storage.sessionStorage);
-    }
-    if (clone.cookies) {
-      if (clone.cookies.pageDocumentCookie) clone.cookies.pageDocumentCookie = redactText(clone.cookies.pageDocumentCookie);
-      (clone.cookies.chromeCookies || []).forEach(c => { c.value = redactText(c.value); });
-    }
-    const logs = clone.logs || {};
-    (logs.network || []).forEach(n => { if (n.url) n.url = redactText(n.url); });
-    (logs.console || []).forEach(c => {
-      if (Array.isArray(c.args)) c.args = c.args.map(a => typeof a === "string" ? redactText(a) : a);
-    });
+    // redactDeep zaten her düzeyde yeni nesne üretir; ayrıca kopyalamaya gerek yok.
+    const clone = redactDeep(payload);
     clone._redacted = true;
     return clone;
   }
@@ -114,39 +139,51 @@ const JBR = (() => {
     });
   }
 
-  async function idbSet(key, val) {
+  async function idbOp(mode, fn) {
     const db = await idbOpen();
     return new Promise((resolve, reject) => {
-      const tx = db.transaction("blobs", "readwrite");
-      tx.objectStore("blobs").put(val, key);
-      tx.oncomplete = () => { db.close(); resolve(); };
+      const tx = db.transaction("blobs", mode);
+      let result;
+      const req = fn(tx.objectStore("blobs"));
+      if (req) req.onsuccess = () => { result = req.result; };
+      tx.oncomplete = () => { db.close(); resolve(result); };
       tx.onerror = () => { db.close(); reject(tx.error); };
+      tx.onabort = () => { db.close(); reject(tx.error); };
     });
   }
 
-  async function idbGet(key) {
-    const db = await idbOpen();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction("blobs", "readonly");
-      const req = tx.objectStore("blobs").get(key);
-      req.onsuccess = () => { db.close(); resolve(req.result || null); };
-      req.onerror = () => { db.close(); reject(req.error); };
-    });
+  const idbSet = (key, val) => idbOp("readwrite", store => store.put(val, key));
+  const idbGet = (key) => idbOp("readonly", store => store.get(key)).then(v => v || null);
+  const idbDel = (key) => idbOp("readwrite", store => store.delete(key));
+
+  // ---- Ekran kaydı yaşam döngüsü (TTL ve geçerlilik kuralları tek yerde) ----
+  const RECORDING_TTL_MS = 30 * 60 * 1000;
+
+  async function saveRecording(entry) {
+    await idbSet("recording", entry);
   }
 
-  async function idbDel(key) {
-    const db = await idbOpen();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction("blobs", "readwrite");
-      tx.objectStore("blobs").delete(key);
-      tx.oncomplete = () => { db.close(); resolve(); };
-      tx.onerror = () => { db.close(); reject(tx.error); };
-    });
+  // Geçerli (boş olmayan, bayatlamamış) kaydı döndürür; bayat kaydı siler.
+  async function getRecording() {
+    let entry = null;
+    try { entry = await idbGet("recording"); } catch (e) { return null; }
+    if (!entry || !entry.blob || !entry.blob.size) return null;
+    if (entry.time && Date.now() - entry.time > RECORDING_TTL_MS) {
+      try { await idbDel("recording"); } catch (e) {}
+      return null;
+    }
+    return entry;
+  }
+
+  async function clearRecording() {
+    try { await idbDel("recording"); } catch (e) {}
   }
 
   return {
-    getState, pickProfile, newProfileId, migrateLegacySettings, addRecentIssue,
+    errMsg, setStatus, normalizeBaseUrl, isValidJiraBase,
+    getState, setPrefs, pickProfile, newProfileId, migrateLegacySettings, addRecentIssue,
     redactText, redactPayload,
-    idbSet, idbGet, idbDel
+    idbSet, idbGet, idbDel,
+    saveRecording, getRecording, clearRecording
   };
 })();

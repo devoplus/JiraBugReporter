@@ -19,18 +19,24 @@ window.addEventListener("message", (e) => {
 }, false);
 
 // ---- Adım kaydedici (repro steps) — yalnızca üst çerçevede ----
+const INTERACTIVE_SELECTOR = 'button, a, input, select, textarea, label, summary, [role="button"], [role="link"], [role="menuitem"], [role="tab"]';
+
 function describeTarget(el) {
   try {
     if (!el || !(el instanceof Element)) return String((el && el.nodeName) || "?");
-    let desc = el.tagName.toLowerCase();
-    if (el.id) desc += `#${el.id}`;
-    else if (el.classList && el.classList.length) desc += "." + [...el.classList].slice(0, 3).join(".");
+    // Etkileşimli olmayan bir öğeye tıklanmışsa en yakın etkileşimli atayı tarif et;
+    // yoksa metin İÇERMEDEN yalnızca seçici yaz (sayfa içeriği rapora sızmasın).
+    const target = el.closest(INTERACTIVE_SELECTOR) || el;
+    let desc = target.tagName.toLowerCase();
+    if (target.id) desc += `#${target.id}`;
+    else if (target.classList && target.classList.length) desc += "." + [...target.classList].slice(0, 3).join(".");
+    if (!target.matches(INTERACTIVE_SELECTOR)) return desc;
     // Metin girdisi alanlarının değerini asla kaydetme; buton etiketleri güvenli.
-    const tag = el.tagName.toLowerCase();
-    const isTextField = (tag === "input" && !["button", "submit", "reset", "checkbox", "radio"].includes(el.type)) || tag === "textarea" || tag === "select";
+    const tag = target.tagName.toLowerCase();
+    const isTextField = (tag === "input" && !["button", "submit", "reset", "checkbox", "radio"].includes(target.type)) || tag === "textarea" || tag === "select";
     const label = isTextField
-      ? (el.getAttribute("aria-label") || el.getAttribute("placeholder") || el.name || "")
-      : ((el.innerText || el.value || el.getAttribute("aria-label") || "").trim());
+      ? (target.getAttribute("aria-label") || target.getAttribute("placeholder") || target.name || "")
+      : ((target.innerText || target.value || target.getAttribute("aria-label") || "").trim());
     const short = String(label).trim().slice(0, 40);
     return short ? `${desc} ("${short}")` : desc;
   } catch (e) {
@@ -71,7 +77,7 @@ function safeDumpStorage(stor) {
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg?.type === "COLLECT_PAGE_DATA") {
-    const { includeStorage = true, includeDocCookie = false } = msg.options || {};
+    const { includeStorage = true, includeCookies = false } = msg.options || {};
     const meta = {
       url: location.href,
       title: document.title,
@@ -93,7 +99,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
         sessionStorage: safeDumpStorage(sessionStorage)
       };
     }
-    if (includeDocCookie) {
+    if (includeCookies) {
       payload.documentCookie = document.cookie || null; // HttpOnly olmayanlar
     }
     sendResponse(payload);

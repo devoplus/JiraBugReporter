@@ -8,22 +8,14 @@ const noProfileEl = document.getElementById("noProfile");
 const recentWrap = document.getElementById("recentWrap");
 const recentList = document.getElementById("recentList");
 
-function setStatus(text, cls) {
-  statusEl.textContent = text || "";
-  statusEl.className = "status " + (cls || "muted");
-}
+const setStatus = (text, cls) => JBR.setStatus(statusEl, text, cls);
 
 async function getActiveTab() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   return tab;
 }
 
-async function savePrefs() {
-  const { prefs = {} } = await chrome.storage.local.get("prefs");
-  await chrome.storage.local.set({
-    prefs: { ...prefs, includeCookies: cbCookies.checked, includeStorage: cbStorage.checked }
-  });
-}
+const savePrefs = () => JBR.setPrefs({ includeCookies: cbCookies.checked, includeStorage: cbStorage.checked });
 
 function updateRecButtons(recording) {
   btnRecStart.disabled = recording;
@@ -63,7 +55,7 @@ function renderRecent(items) {
     const rs = await chrome.runtime.sendMessage({ type: "REC_STATUS" });
     updateRecButtons(!!(rs && rs.recordingTabId));
   } catch (e) {
-    setStatus("Başlatma hatası: " + (e && e.message ? e.message : e), "error");
+    setStatus("Başlatma hatası: " + JBR.errMsg(e), "error");
   }
 })();
 
@@ -86,7 +78,7 @@ btnRecStart.onclick = async () => {
     setStatus("Kayıt başladı. Hatayı yeniden üretin, ardından raporu hazırlayın.");
   } catch (e) {
     btnRecStart.disabled = false;
-    setStatus("Kayıt başlatılamadı: " + (e && e.message ? e.message : e), "error");
+    setStatus("Kayıt başlatılamadı: " + JBR.errMsg(e), "error");
   }
 };
 
@@ -99,7 +91,7 @@ btnRecStop.onclick = async () => {
     setStatus(res.hasRecording ? "Kayıt durdu; rapora eklenmek üzere hazır." : "Kayıt durdu (veri yok).");
   } catch (e) {
     updateRecButtons(false);
-    setStatus("Kayıt durdurulamadı: " + (e && e.message ? e.message : e), "error");
+    setStatus("Kayıt durdurulamadı: " + JBR.errMsg(e), "error");
   }
 };
 
@@ -115,14 +107,13 @@ btnReport.onclick = async () => {
       tab: { id: tab.id, url: tab.url, title: tab.title, windowId: tab.windowId },
       options: {
         includeCookies: cbCookies.checked,
-        includeStorage: cbStorage.checked,
-        includeDocCookie: cbCookies.checked
+        includeStorage: cbStorage.checked
       }
     });
     if (!res || !res.ok) throw new Error((res && res.error) || "Bilinmeyen hata");
     window.close();
   } catch (e) {
-    setStatus("Hata: " + (e && e.message ? e.message : e), "error");
+    setStatus("Hata: " + JBR.errMsg(e), "error");
     btnReport.disabled = false;
   }
 };
